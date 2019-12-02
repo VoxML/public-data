@@ -5,6 +5,7 @@ import csv
 import itertools
 import pprint
 import statistics as stats
+#import krippendorff_alpha
 
 def main():
     parser = argparse.ArgumentParser(description='Analyze logs.')
@@ -20,12 +21,13 @@ def main():
     params = args.params
     mode = args.mode
     
-    for i in range(len(params)):
-        if "=" in params[i]:
-            if not params[i][params[i].index("=")+1].isnumeric():
-                params[i] = "='".join(params[i].rsplit("=",1))
-                params[i] += "'"
-                params[i] = params[i].replace("''","'")
+    if params is not None:
+        for i in range(len(params)):
+            if "=" in params[i]:
+                if not params[i][params[i].index("=")+1].isnumeric():
+                    params[i] = "='".join(params[i].rsplit("=",1))
+                    params[i] += "'"
+                    params[i] = params[i].replace("''","'")
     
     print(params)
 
@@ -44,9 +46,10 @@ def main():
     
     counts = {}
 
-    for i in range(1,len(params)+1):
-        for key in [j for j in itertools.combinations(params, i)]:
-            counts[" AND ".join(list(key))] = 0
+    if params is not None:
+        for i in range(1,len(params)+1):
+            for key in [j for j in itertools.combinations(params, i)]:
+                counts[" AND ".join(list(key))] = 0
 
     rank_counts = {}
 
@@ -87,7 +90,7 @@ def main():
                 
                 hit_results.append([vidA,vidB,vidC,vidD,vidE,
                                   rankA,rankB,rankC,rankD,rankE])
-                
+
                 i += 1
     else:
         print("%s is not a file" % batch)
@@ -104,35 +107,67 @@ def main():
         
         for key in counts:
             #print(key)
-            cmd = "SELECT FilePath FROM EMREVideoDBEntry WHERE " + key
+            cmd = "SELECT FilePath FROM EMREVideoDBEntry" + " WHERE " + key
             #cmd = "SELECT FilePath FROM EMREVideoDBEntry WHERE Id >= 111 AND Id <= 115"
             print(cmd)
             cursor.execute(cmd)
             results = [r[0] for r in cursor.fetchall()]
             print(results)
-            counts[key] += 8*len(results)
+            #counts[key] += 8*len(results)
+        
+#            krippendorff_indices = []
+#            krippendorff_vals = []
+            
+#            print(len(results))
+#            for i in range(8):
+#                krippendorff_vals.append(["*" for i in range(len(results))])
+        #print(len(krippendorff_vals))
         
             for filepath in results:
                 vid_rankings = [hit_result for hit_result in hit_results if filepath in hit_result]
+                i = 0
                 for task in vid_rankings:
-                    print(task)
                     rankings = [(-r+6 if task[5] > task[9] else r) for r in task[5:]]
+                    print(task[:5],rankings)
+                    #for path in task[:5]:
+                        #if path not in krippendorff_indices:
+                        #    krippendorff_indices.append(path)
+                    #print(krippendorff_indices.index(path))
                     if mode:
                         rankings = [r-stats.median(rankings) for r in rankings]
                         print(rankings)
                         rank_counts[key + " AND R=E (-2)"] += (rankings[task.index(filepath)] == -2)
+                        counts[key] += (rankings[task.index(filepath)] == -2)
                         rank_counts[key + " AND R=D (-1)"] += (rankings[task.index(filepath)] == -1)
+                        counts[key] += (rankings[task.index(filepath)] == -1)
                         rank_counts[key + " AND R=C (0)"] += (rankings[task.index(filepath)] == 0)
+                        counts[key] += (rankings[task.index(filepath)] == 0)
                         rank_counts[key + " AND R=B (+1)"] += (rankings[task.index(filepath)] == 1)
+                        counts[key] += (rankings[task.index(filepath)] == 1)
                         rank_counts[key + " AND R=A (+2)"] += (rankings[task.index(filepath)] == 2)
+                        counts[key] += (rankings[task.index(filepath)] == 2)
                     else:
                         rank_counts[key + " AND R=E (1)"] += (rankings[task.index(filepath)] == 1)
+                        counts[key] += (rankings[task.index(filepath)] == 1)
                         rank_counts[key + " AND R=D (2)"] += (rankings[task.index(filepath)] == 2)
+                        counts[key] += (rankings[task.index(filepath)] == 2)
                         rank_counts[key + " AND R=C (3)"] += (rankings[task.index(filepath)] == 3)
+                        counts[key] += (rankings[task.index(filepath)] == 3)
                         rank_counts[key + " AND R=B (4)"] += (rankings[task.index(filepath)] == 4)
+                        counts[key] += (rankings[task.index(filepath)] == 4)
                         rank_counts[key + " AND R=A (5)"] += (rankings[task.index(filepath)] == 5)
+                        counts[key] += (rankings[task.index(filepath)] == 5)
+#                        print(krippendorff_indices.index(filepath))
+#                        print(i)
+#                        print(len(krippendorff_vals[i]))
+#                        print(krippendorff_indices.index(filepath))
+#                       krippendorff_vals[i][krippendorff_indices.index(filepath)] = str(rankings[task.index(filepath)])
+#print(krippendorff_vals)
+                    i += 1
         #print(results)
-        
+#        print(krippendorff_vals)
+#        print(krippendorff_alpha.krippendorff_alpha(krippendorff_vals, missing_items='*'))
+
         #P(Rank=5|Modality=E) = C(R=5,M=E)/C(M=E)
         #P(Rank=5|Modality=E,O=red_block1) = C(R=5,M=E,O=1)/C(M=E,O=1)
 
