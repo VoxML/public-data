@@ -501,7 +501,7 @@ def main():
 
         sgd = SGD(lr=0.1, decay=0, momentum=0.0, nesterov=False)
         mlp.compile(loss='categorical_crossentropy',
-                    optimizer=sgd,
+                    optimizer='adam',
                     metrics=['accuracy'])
             
         mlp.fit(mlp_x_train, mlp_y_train,
